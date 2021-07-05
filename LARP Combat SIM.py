@@ -1,0 +1,69 @@
+import creature
+import weapon
+from copy import copy
+from fightlogic import run_solo_encounter
+from sys import exit
+
+# Initialise weapons
+weapon_shield = weapon.Weapon('Shield',1.5,[1,0.5,0.5,1,1,1])
+weapon_off_hand = weapon.Weapon('Off Hand Weapon',1.25,[1,3,1,0.5,2,0.5])
+weapon_off_hand_short = weapon.Weapon('Off Hand Short Weapon',1.3,[1,3,1,0.5,2,0.5])
+weapon_two_handed = weapon.Weapon('Two Handed',1.2,[1,3,1,0.5,1,1])
+weapon_polearm = weapon.Weapon('Two Handed',2,[1,1,1,1,1,1.5])
+
+# Initialise some simple creatures and place into a tuple to select from
+Fighter = creature.TreasureTrapPC('Fighter',1,[4,4,4,4,4,4],1,[weapon_shield],[],[1,1,1,1,1,1])
+Scout = creature.TreasureTrapPC('Scout',1,[3,3,3,3,3,3],1,[weapon_off_hand_short],[],[1,1,1,1,1,1],1)
+Berserker = creature.Locational('Berserker',1,[3,3,3,3,3,3],2,[weapon_two_handed])
+Peasant = creature.Locational('Peasant',1,[3,3,3,3,3,3],1)
+Goblin = creature.Locational('Goblin',1,[2,2,2,2,3,3],1)
+Skeleton = creature.Global('Skeleton',1,[6],1)
+Zombie = creature.Global('Zombie',0.5,[9],2)
+Lesser_Alkar = creature.Global('Lesser Alkar',1,[10],1,[weapon_off_hand])
+Darkness_Warlock = creature.TreasureTrapPC('Dark Warlock',1,[3,3,3,3,3,3],1,[],['Glimmer'],[0,0,0,0,0,0],0,0,0,10)
+Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock
+
+# Get text input from the user to select combatants and number of fights to simulate
+print('Choose creatures to fight:')
+print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock')
+
+try:
+    fighter_a_selection = int(input('Pick a number from 1-9 to select first creature :'))-1
+    fighter_b_selection = int(input('Pick a number from 1-9 to select second creature :'))-1
+    fight_count = int(input('Choose the number of fights to simulate:'))
+    fighter_a = copy(Creature_Select[fighter_a_selection])
+    fighter_b = copy(Creature_Select[fighter_b_selection])
+except:
+    print('Invalid selection, shutting down')
+    exit()
+
+# Initialise Output Statistics
+fighter_a_wincount,fighter_b_wincount,draw_count,fighter_a_hits_taken,fighter_b_hits_taken, = 0,0,0,[],[]
+
+# Set up a loop to run the simulation a number of times and record the outcomes
+for x in range(fight_count):
+
+    # Reset creatures to starting state
+    fighter_a.initialize_creature()
+    fighter_b.initialize_creature()
+
+    #Run the fight
+    y = run_solo_encounter(fighter_a,fighter_b)
+    
+    if y == 0:
+        draw_count += 1
+    elif y == 1:
+        fighter_a_wincount += 1
+    elif y == 2:
+        fighter_b_wincount += 1
+
+    # Calculate hits taken
+    fighter_a_hits_taken.append(sum(fighter_a.maxhits)-sum(fighter_a.currhits))
+    fighter_b_hits_taken.append(sum(fighter_b.maxhits)-sum(fighter_b.currhits))
+
+# Generalised Output stats
+print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')
+print(fighter_b.name, 'won', fighter_b_wincount, '(', round((fighter_b_wincount/fight_count)*100,2), '% ) fights')
+print(draw_count, '(', round((draw_count/fight_count)*100,2), '% ) fights ended in a draw')
+print(fighter_a.name, 'took', round(sum(fighter_a_hits_taken)/len(fighter_a_hits_taken),2),'points of damage on average')
+print(fighter_b.name, 'took', round(sum(fighter_b_hits_taken)/len(fighter_b_hits_taken),2),'points of damage on average')
