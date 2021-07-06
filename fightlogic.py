@@ -5,6 +5,37 @@ from sys import exit
 # Base chance to trade blows instead of either party getting a clean hit when their skill is equal
 chance_trade_base = 0.5 
 
+def use_ability(source,target,ability):
+    'Function for source creature to use ability in fight with target'
+    # Spend source creature resource
+    source_resource_spend = ability.resource_activate + '_points'
+    setattr(source,source_resource_spend,getattr(source,source_resource_spend) - ability.resource_cost)
+    # If ability is a status granting ability set status on appropriate ability target
+    if ability.type == 'abilitygrantstatus':
+        if 'hostile' in ability.target:
+            target.apply_status(ability.associated_status,ability.associated_status_duration)
+        elif 'self' in ability.target:
+            source.apply_status(ability.associated_status,ability.associated_status_duration)
+    # If ability is direct damage dealing then deal direct damage to the target
+    if ability.type == 'abilitydamagedirect':
+        target.damage_creature_direct(ability.damage)
+    # If ability is affect creature
+        #PLACEHOLDER
+
+def use_ability_fast(source,target,ability):
+    'Function for source creature to use selected ability in fight with target if it is a valid fast ability'
+    if ability == None:
+        return
+    elif ability.speed == 'fast':
+        use_ability(source,target,ability)
+
+def use_ability_slow(source,target,ability,source_was_hit):
+    'Function for source creature to use selected ability in fight with target if it is a valid slow ability'
+    if ability == None:
+        return
+    elif (ability.speed == 'interruptible' and source_was_hit == 0) or ability.speed == 'uninterruptible':
+        use_ability(source,target,ability)
+
 def run_solo_encounter(fighter_a,fighter_b):
     'Run a solo encounter between fighter_a and fighter_b and return 0 for a draw, 1 for a fighter_a win and 2 for a fighter_b win'
     #Initialize round counter
@@ -23,38 +54,15 @@ def run_solo_encounter(fighter_a,fighter_b):
         fighter_a_was_hit,fighter_b_was_hit = 0,0
 
         # Check if the parties will use any abilities and return the ones they will use
-        fighter_a_use_ability = fighter_a.check_use_ability()
-        fighter_b_use_ability = fighter_b.check_use_ability()
+        fighter_a_use_ability,fighter_b_use_ability = fighter_a.check_use_ability(),fighter_b.check_use_ability()
 
         # Implement logic for using fast abilities - need to do this before we calculate fighter ratings as it can modify them
         # Note : "Combo's" like Glimmer + Enhancement would need to implemented as their own "Ability" - since only one ability is ever used per round
-        if fighter_a_use_ability != None:
-            if fighter_a_use_ability.speed == 'fast':
-                # Spend resource of fighter a
-                # Note : Should probably implement resource spend as a class method to be cleaner
-                fighter_a_resource_spend = fighter_a_use_ability.resource_activate + '_points'
-                setattr(fighter_a,fighter_a_resource_spend,getattr(fighter_a,fighter_a_resource_spend) - fighter_a_use_ability.resource_cost)
-                # Set status on ability target
-                # Note : This code is re-used like 4 times, can it be a method?
-                if 'hostile' in fighter_a_use_ability.target:
-                    fighter_b.apply_status(fighter_a_use_ability.associated_status,fighter_a_use_ability.associated_status_duration)
-                elif 'self' in fighter_a_use_ability.target:
-                    fighter_a.apply_status(fighter_a_use_ability.associated_status,fighter_a_use_ability.associated_status_duration)
-
-        if fighter_b_use_ability != None:
-            if fighter_b_use_ability.speed == 'fast':
-                # Spend resource of fighter b
-                fighter_b_resource_spend = fighter_b_use_ability.resource_activate + '_points'
-                setattr(fighter_b,fighter_b_resource_spend,getattr(fighter_b,fighter_b_resource_spend) - fighter_b_use_ability.resource_cost)
-                # Set status on ability target
-                if 'hostile' in fighter_b_use_ability.target:
-                    fighter_a.apply_status(fighter_b_use_ability.associated_status,fighter_b_use_ability.associated_status_duration)
-                elif 'self' in fighter_b_use_ability.target:
-                    fighter_b.apply_status(fighter_b_use_ability.associated_status,fighter_b_use_ability.associated_status_duration)
+        use_ability_fast(fighter_a,fighter_b,fighter_a_use_ability)
+        use_ability_fast(fighter_b,fighter_a,fighter_b_use_ability)
 
         # Store the fighter ratings as temp variables to avoid repetition of the getter logic
-        _fighter_a_rating = fighter_a.rating
-        _fighter_b_rating = fighter_b.rating
+        _fighter_a_rating,_fighter_b_rating = fighter_a.rating,fighter_b.rating
         
         # Exception for both fighters having a rating of Zero - skip the round
         if _fighter_a_rating == 0 and _fighter_b_rating == 0:
@@ -87,21 +95,8 @@ def run_solo_encounter(fighter_a,fighter_b):
         y = fighter_b.check_incapacitated()
 
         # Implement logic for using interruptible (if not hit while casting) and uniterruptible abilities
-        if fighter_a_use_ability != None:
-            if (fighter_a_use_ability.speed == 'interruptible' and fighter_a_was_hit == 0) or fighter_a_use_ability.speed == 'uninterruptible':
-                # Set status on ability target
-                if 'hostile' in fighter_a_use_ability.target:
-                    fighter_b.apply_status(fighter_a_use_ability.associated_status,fighter_a_use_ability.associated_status_duration)
-                elif 'self' in fighter_a_use_ability.target:
-                    fighter_a.apply_status(fighter_a_use_ability.associated_status,fighter_a_use_ability.associated_status_duration)
-        
-        if fighter_b_use_ability != None:
-            if (fighter_b_use_ability.speed == 'interruptible' and fighter_b_was_hit == 0) or fighter_a_use_ability.speed == 'uninterruptible':
-                 # Set status on ability target
-                if 'hostile' in fighter_b_use_ability.target:
-                    fighter_a.apply_status(fighter_b_use_ability.associated_status,fighter_b_use_ability.associated_status_duration)
-                elif 'self' in fighter_b_use_ability.target:
-                    fighter_b.apply_status(fighter_b_use_ability.associated_status,fighter_b_use_ability.associated_status_duration)
+        use_ability_slow(fighter_a,fighter_b,fighter_a_use_ability,fighter_a_was_hit)
+        use_ability_slow(fighter_b,fighter_a,fighter_b_use_ability,fighter_b_was_hit)
 
         # Output Fight Result
         if x == 1 and y == 1:

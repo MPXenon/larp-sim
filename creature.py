@@ -111,6 +111,10 @@ class Global(Creature):
     base_chance_hit_list = [1]
     hit_num_list = [1]
 
+    def damage_creature_direct(self,damage):
+        'Apply direct damage to a creature based on the appropriate logic for its type'
+        self.currhits[0] -= damage
+
     def check_incapacitated(self):
         'Return 1 if the creature is incapacitated and incapable of fighting and 0 otherwise'
         # Global creatures are incapacitated if their hits drop to zero
@@ -183,6 +187,11 @@ class Locational(Creature):
             self.apply_status(status_off_hand,-1)
             self.apply_status(status_disarmed,1) 
 
+    def damage_creature_direct(self,damage):
+        'Apply direct damage to a creature based on the appropriate logic for its type'
+        # On a locational creature direct damage goes straight to the body
+        self.damage_creature(2,damage)
+
     def check_incapacitated(self):
         'Return 1 if the creature is incapacitated and incapable of fighting and 0 otherwise'
         # Locational creatures are incapacitated if any critical location, or all arm locations, drop to zero
@@ -217,12 +226,12 @@ class TreasureTrapPC(Locational):
         'Return 1 and the ability they will use if creature will use a special ability this round, else return 0 and None'
         # Now that we have abilities as objects which are then listed in the creatures abilities we can just loop over them to check which to use
         # This means we are assuming the list of abilities is priority ranked, which makes sense and lets us adjust "strategies"
-        # This only really supports simple, fast abilities right now - higher level spells need to be able to be interrupted, and miracles take time to cast
         for ability in self.abilities:
             curr, max = (ability.resource_activate + '_points', ability.resource_activate + '_points_max')
             # If not enough resource, do not use ability - This won't support zero cost abilities as implmented, because of a divide by zero issue
             if getattr(self, curr) < ability.resource_cost:
                 continue
+            # Note : In exceptional cases the total of currhits can go negative, at which point no abilities will be spammed continually - not nessecarily wrong
             elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)):
                 return ability
         return None
