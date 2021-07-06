@@ -1,8 +1,15 @@
 import creature
 import weapon
+import abilities
+import status
 from copy import copy
 from fightlogic import run_solo_encounter
 from sys import exit
+
+# Initialise combat statuses required for abilities
+# Note : These are "safe" to use with global creatures
+status_distracted = status.Status('Distracted', status_rating_multi=0)
+status_enhanced = status.Status('Enhanced', status_damage_mod=1)
 
 # Initialise weapons
 weapon_shield = weapon.Weapon('Shield',1.5,[1,0.5,0.5,1,1,1])
@@ -10,6 +17,11 @@ weapon_off_hand = weapon.Weapon('Off Hand Weapon',1.25,[1,3,1,0.5,2,0.5])
 weapon_off_hand_short = weapon.Weapon('Off Hand Short Weapon',1.3,[1,3,1,0.5,2,0.5])
 weapon_two_handed = weapon.Weapon('Two Handed',1.2,[1,3,1,0.5,1,1])
 weapon_polearm = weapon.Weapon('Two Handed',2,[1,1,1,1,1,1.5])
+
+# Initialise abilities
+# Note : "Fast" abilities usually have minimum duration of 0 if they affect the current round only, while others should start at 1
+ability_glimmer = abilities.Ability('Glimmer','hostile','fast','mana',1,status_distracted,0)
+ability_enhancement = abilities.Ability('Enhancement','self','fast','mana',1,status_enhanced,0)
 
 # Initialise some simple creatures and place into a tuple to select from
 Fighter = creature.TreasureTrapPC('Fighter',1,[4,4,4,4,4,4],1,[weapon_shield],[],[1,1,1,1,1,1])
@@ -20,12 +32,13 @@ Goblin = creature.Locational('Goblin',1,[2,2,2,2,3,3],1)
 Skeleton = creature.Global('Skeleton',1,[6],1)
 Zombie = creature.Global('Zombie',0.5,[9],2)
 Lesser_Alkar = creature.Global('Lesser Alkar',1,[10],1,[weapon_off_hand])
-Darkness_Warlock = creature.TreasureTrapPC('Dark Warlock',1,[3,3,3,3,3,3],1,[],['Glimmer'],[0,0,0,0,0,0],0,0,0,10)
-Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock
+Darkness_Warlock = creature.TreasureTrapPC('Dark Warlock',1,[3,3,3,3,3,3],1,[],[ability_glimmer],[0,0,0,0,0,0],0,0,0,10)
+Fire_Warlock = creature.TreasureTrapPC('Fire Warlock',1,[3,3,3,3,3,3],1,[],[ability_enhancement],[0,0,0,0,0,0],0,0,0,10)
+Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock,Fire_Warlock
 
 # Get text input from the user to select combatants and number of fights to simulate
 print('Choose creatures to fight:')
-print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock')
+print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock, 10 - Fire Warlock')
 
 try:
     fighter_a_selection = int(input('Pick a number from 1-9 to select first creature :'))-1
@@ -60,6 +73,9 @@ for x in range(fight_count):
     # Calculate hits taken
     fighter_a_hits_taken.append(sum(fighter_a.maxhits)-sum(fighter_a.currhits))
     fighter_b_hits_taken.append(sum(fighter_b.maxhits)-sum(fighter_b.currhits))
+
+    # Calculate resources spent
+    # PLACEHOLDER
 
 # Generalised Output stats
 print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')

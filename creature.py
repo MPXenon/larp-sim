@@ -7,7 +7,7 @@ import status
 hit_location_names = ['Head','Off Hand','Body','Favoured Hand','Off Leg','Favoured Leg']
 base_hit_location_weightings = [4,1,4,6,1,4]
 
-# Initialise statuses
+# Initialise core statuses
 status_prone = status.Status('Prone', 0.75, [1.5,2,1,1,1,0.25])
 status_off_hand = status.Status('Using Off hand', 0.75, [1,1,1,1,1,1])
 status_disarmed = status.Status('Disarmed', 0, [1,1,1,1,1,1])
@@ -33,13 +33,19 @@ class Creature:
         _rating = self.base_rating
         # Check for statuses and weapons that impact rating
         for x in self.status:
-            _rating = _rating*x.status_rating_mod
+            _rating = _rating*x.status_rating_multi
         for y in self.weapons:
-            _rating = _rating*y.weapon_rating_mod
+            _rating = _rating*y.weapon_rating_multi
         return _rating
 
     def get_damage(self):
-        return self.base_damage
+        _damage = self.base_damage
+        # Check for statuses that impact damage
+        # Note : We have chosen to apply modifier before multiplier - this is consistent with how things work in DUTT
+        for x in self.status:
+            _damage += x.status_damage_mod
+            _damage = _damage*x.status_damage_multi
+        return _damage
     
     chance_hit_list = property(get_chance_hit_list)
     hit_num_list = property(get_hit_num_list)
@@ -52,12 +58,12 @@ class Creature:
 
     def check_use_ability(self):
         'Check if creature will use a special ability this round and which they will use'
-        return 0, None
+        return None
 
     def determine_hit_location(self):
         'Return a hit location number using the creatures location weightings'
         # Setup temporary variables for random number and repetition avoidance
-        __rand_no_location = random.random()
+        rand_no_location = random.random()
         _hit_num_list = list.copy(self.hit_num_list)
         # Handle the case of Global hits monsters
         if len(_hit_num_list) == 1:
@@ -65,7 +71,7 @@ class Creature:
         # Otherwise use the location list
         else:
             for x in range(len(_hit_num_list)):
-                if _hit_num_list[x] <= __rand_no_location <= _hit_num_list[x+1]:
+                if _hit_num_list[x] <= rand_no_location <= _hit_num_list[x+1]:
                     hit_location_num = x
         return hit_location_num
     
@@ -84,19 +90,20 @@ class Creature:
 
     def update_status(self):
         'Update the status of a creature at the start of a new round'
+        # Initialise a blank list of statuses to delete
+        deletelist = []
         # Loop over statuses
-        _poplist = []
         for x in range(len(self.status_durations)):
             # Identify statuses with no remaining duration which are to be removed
             if self.status_durations[x] == 0:
-                _poplist.append(x)
+                deletelist.append(x)
             # If a status has a positive duration reduce it by one
             if self.status_durations[x] > 0:
                 self.status_durations[x] -= 1
-        for _item in _poplist:        
-            # Loop over the poplist and remove expired statuses
-            self.status.pop(_item)
-            self.status_durations.pop(_item)          
+        # Loop backwards over the deletelist and remove expired statuses
+        for index in sorted(deletelist,reverse=1):        
+            del self.status[index]
+            del self.status_durations[index]          
 
 class Global(Creature):
     'Class which defines creatures with global hits'
@@ -122,10 +129,10 @@ class Locational(Creature):
         # Check for weapons and statuses that impact hit list
         for x in self.weapons:
             if (self.currhits[1] > 0 and self.currhits[3] > 0):
-                _chance_hit_list = [a * b for a, b in zip(_chance_hit_list,x.weapon_hit_mod)]
+                _chance_hit_list = [a * b for a, b in zip(_chance_hit_list,x.weapon_hit_multi)]
         # Status implementation
         for y in self.status:
-            _chance_hit_list = [a * b for a, b in zip(_chance_hit_list,y.status_hit_mod)]
+            _chance_hit_list = [a * b for a, b in zip(_chance_hit_list,y.status_hit_multi)]
             # Specific case for using off hand
             if y.name == 'Using Off Hand':
                 # Swap on and off arms and legs
@@ -144,11 +151,11 @@ class Locational(Creature):
         _rating = self.base_rating
         # Check for statuses and weapons that impact rating
         for x in self.status:
-            _rating = _rating*x.status_rating_mod
+            _rating = _rating*x.status_rating_multi
         # For a loctional hits creature both hands must be uninjured for the shield or off hand weapon to function
         for y in self.weapons:
             if self.currhits[1] > 0 and self.currhits[3] > 0:
-                _rating = _rating*y.weapon_rating_mod
+                _rating = _rating*y.weapon_rating_multi
         return _rating
 
     # We *MUST* restate properties whose functions have changed, else the parent ones will be used
@@ -190,37 +197,35 @@ class TreasureTrapPC(Locational):
     'Class for player characters built using the DUTT Ruleset'
     # Adds TT offense and defence into the creature
     def __init__(self,name,base_rating,maxhits,base_damage,weapons=[],abilities=[],loc_armour=[0,0,0,0,0,0],
-                glob_dac=0,glob_spirit_arm=0,glob_magic_arm=0,mana_points=0,spirit_points=0,alchemy_ingredients=0,herb_ingredients=0):
+                glob_dac=0,glob_spirit_arm=0,glob_magic_arm=0,mana_points=0,spirit_points=0,alchemy_points=0,herb_points=0):
         self.name,self.base_rating,self.maxhits,self.base_damage = name,base_rating,maxhits,base_damage
         self.status,self.status_durations,self.currhits,self.weapons,self.abilities = [],[],list.copy(self.maxhits),list.copy(weapons),list.copy(abilities)
         self.loc_armour_max,self.glob_dac_max,self.glob_spirit_arm_max,self.glob_magic_arm_max = list.copy(loc_armour),glob_dac,glob_spirit_arm,glob_magic_arm
         self.loc_armour,self.glob_dac,self.glob_spirit_arm,self.glob_magic_arm = list.copy(loc_armour),glob_dac,glob_spirit_arm,glob_magic_arm
-        self.mana_points_max,self.spirit_points_max,self.alchemy_ingredients_max,self.herb_ingredients_max  = mana_points,spirit_points,alchemy_ingredients,herb_ingredients
-        self.mana_points,self.spirit_points,self.alchemy_ingredients,self.herb_ingredients = mana_points,spirit_points,alchemy_ingredients,herb_ingredients
+        self.mana_points_max,self.spirit_points_max,self.alchemy_points_max,self.herb_points_max  = mana_points,spirit_points,alchemy_points,herb_points
+        self.mana_points,self.spirit_points,self.alchemy_points,self.herb_points = mana_points,spirit_points,alchemy_points,herb_points
 
-    # TT Characters need an extended initialisation method to reset armour (and later resources)
+    # TT Characters need an extended initialisation method to reset armour and resources
     def initialize_creature(self):
         'Reset a creatures perameters to the base state'
         self.status,self.status_durations,self.currhits = [],[],list.copy(self.maxhits)
         self.loc_armour,self.glob_dac,self.glob_spirit_arm,self.glob_magic_arm = list.copy(self.loc_armour_max),self.glob_dac_max,self.glob_spirit_arm_max,self.glob_magic_arm_max
-        self.mana_points,self.spirit_points,self.alchemy_ingredients,self.herb_ingredients = self.mana_points_max,self.spirit_points_max,self.alchemy_ingredients_max,self.herb_ingredients_max
+        self.mana_points,self.spirit_points,self.alchemy_points,self.herb_points = self.mana_points_max,self.spirit_points_max,self.alchemy_points_max,self.herb_points_max
 
-    # TT Characters can use special abilities if they have enough resources, need a check to see if they will use them in a combat round
+    # TT Characters can use special abilities if they have enough resources, need a check to see which they will use them in a combat round
     def check_use_ability(self):
-        'Check if creature will use a special ability this round and which they will use'
-        resource_list = ['Mana','Spirit','Alchemy','Herb']
-        resource_num = 0
-        # Note : No concrete reason for this, but it feels about right; Use Mana, then Spirit, then Alchemy, then Herbs if you have multiple
-        for curr,max in [('mana_points','mana_points_max'),('spirit_points','spirit_points_max'),('alchemy_ingredients','alchemy_ingredients_max'),('herb_ingredients','herb_ingredients_max')]:
-            # If no resource, do not use ability (this prevents divide by zero errors later)
-            if getattr(self, curr) == 0:
-                resource_num += 1
+        'Return 1 and the ability they will use if creature will use a special ability this round, else return 0 and None'
+        # Now that we have abilities as objects which are then listed in the creatures abilities we can just loop over them to check which to use
+        # This means we are assuming the list of abilities is priority ranked, which makes sense and lets us adjust "strategies"
+        # This only really supports simple, fast abilities right now - higher level spells need to be able to be interrupted, and miracles take time to cast
+        for ability in self.abilities:
+            curr, max = (ability.resource_activate + '_points', ability.resource_activate + '_points_max')
+            # If not enough resource, do not use ability - This won't support zero cost abilities as implmented, because of a divide by zero issue
+            if getattr(self, curr) < ability.resource_cost:
                 continue
             elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)):
-                return 1, resource_list[resource_num]
-            else:
-                resource_num += 1
-        return 0, None
+                return ability
+        return None
 
     # TT Characters need their own damage_creature method which accounts for sources of armour
     def damage_creature(self,hit_location_num,damage):
