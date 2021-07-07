@@ -31,9 +31,9 @@ class AbilityHealCreature(Ability):
         super().__init__(name,target,speed,resource_activate,resource_cost)
         self.healing = healing
 
-class AbilityAffectCreature(Ability):
-    'Class that defines abilities which directly modify non-hit point creature attributes'
-    type = 'abilityaffectcreature'
-    def __init__(self,name,target,speed,resource_activate,resource_cost,attribute_target,attribute_mod):
-        super().__init__(name,target,speed,resource_activate,resource_cost)
-        self.attribute_target,self.attribute_mod = attribute_target,attribute_mod
+# class AbilityAffectCreature(Ability):
+#     'Class that defines abilities which directly modify non-hit point creature attributes'
+#     type = 'abilityaffectcreature'
+#     def __init__(self,name,target,speed,resource_activate,resource_cost,attribute_target,attribute_mod):
+#         super().__init__(name,target,speed,resource_activate,resource_cost)
+#         self.attribute_target,self.attribute_mod = attribute_target,attribute_mod

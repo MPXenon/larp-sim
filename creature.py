@@ -108,6 +108,7 @@ class Creature:
             del self.status[index]
             del self.status_durations[index]          
 
+# Should rename this class to something less likely to cause python issues
 class Global(Creature):
     'Class which defines creatures with global hits'
     name_hit_list = ['Global']
@@ -130,6 +131,11 @@ class Global(Creature):
         'Apply healing to creature in a (somewhat) logical fashion'
         # Global healing is simple, just don't let it overflow the maxhits
         self.currhits[0] = min((self.currhits[0] + healing, self.maxhits[0]))
+
+    def get_healable_damage(self):
+        'Return the total ammount of damage which can still be healed (i.e to non-destroyed locations) the creature has taken'
+        healable_damage = self.maxhits[0] - self.currhits[0]
+        return healable_damage
 
 class Locational(Creature):
     'Class which defines creatures with locational hits'
@@ -181,11 +187,11 @@ class Locational(Creature):
         _oldhits = list.copy(self.currhits)
         # For locational creatures we need to check if the location is a limb and if it is already destroyed
         if hit_location_num not in [0,2] and self.currhits[hit_location_num] <= -3:
-            # If so redirect damage to body
-            self.currhits[2] -= damage
+            # If so redirect damage to body and prevent hits going below -3
+            self.currhits[2] = max((self.currhits[2] - damage),-3)
         # Otherwise apply damage as normal
         else:
-            self.currhits[hit_location_num] -= damage
+            self.currhits[hit_location_num] = max((self.currhits[hit_location_num] - damage),-3)
         # Applying wounding based statuses
         # "Prone" status - Apply when either leg is hit and drops to zero
         if hit_location_num in [4,5] and _oldhits[hit_location_num] > 0 and self.currhits[hit_location_num] <= 0:
@@ -218,7 +224,6 @@ class Locational(Creature):
             if self.currhits[x] > -3 and self.currhits[x] < self.maxhits[x]:
                 healable_damage += self.maxhits[x] - self.currhits[x]
         return healable_damage
-
     
     def heal_creature(self,healing):
         'Apply healing to creature in a (somewhat) logical fashion; prioritising the most wounded non-destroyed location and then a preset location order'
@@ -277,15 +282,21 @@ class TreasureTrapPC(Locational):
             # If not enough resource, do not use ability - This won't support zero cost abilities as implmented, because of a divide by zero issue
             if getattr(self, curr) < ability.resource_cost:
                 continue
-            # Note : In exceptional cases the total of currhits can go negative, at which point no abilities will be spammed continually - not nessecarily wrong
+            # Note : In exceptional cases the total of currhits can go negative, at which point no abilities will be spammed continually - not nessecarily wrong though!
             elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)):
                 # If the ability is healing to be used on self then skip over if any healing will be "wasted" because it exceeds damage which can be healed
-                # WARNING : This will be further complicated once multi party fights mean friendlies can be healed and when we introduce "heal sufficient"
+                # WARNING : This will be further complicated once multi party fights mean friendlies can be healed or when we introduce "heal sufficient"
                 if ability.type == 'abilityhealcreature' and 'self' in ability.target and self.get_healable_damage() < ability.healing:
                     continue
                 else:
                     return ability
         return None
+
+    def get_resource_spent(self,resource_name):
+        'Return the number of the resource_name spent'
+        curr, max = resource_name + '_points', resource_name + '_points_max'
+        resource_spent = getattr(self,max) - getattr(self,curr)
+        return resource_spent
 
     # TT Characters need their own damage_creature method which accounts for sources of armour
     def damage_creature(self,hit_location_num,damage):
@@ -293,7 +304,6 @@ class TreasureTrapPC(Locational):
         # Note : Not official TT rules, but let's establish an order of operations that goes DAC, Spirit, Magic, Physical
         # Note : Damage types are not yet implemented
         # Loop over the armour attributes as long as there is still damage to assign
-        # ISSUE : Minor, but this allows hits to go below -3, which is not correct in TT
         for elm in ['glob_dac','glob_spirit_arm','glob_magic_arm']:
             x = getattr(self, elm)
             # If no armour of this type go to next one in the list

@@ -7,7 +7,6 @@ from fightlogic import run_solo_encounter
 from sys import exit
 
 # Initialise combat statuses required for abilities
-# Note : These are "safe" to use with global creatures
 status_distracted = status.Status('Distracted', status_rating_multi=0)
 status_enhanced = status.Status('Enhanced', status_damage_mod=1)
 
@@ -57,7 +56,8 @@ except:
     exit()
 
 # Initialise Output Statistics
-fighter_a_wincount,fighter_b_wincount,draw_count,fighter_a_hits_taken,fighter_b_hits_taken, = 0,0,0,[],[]
+fighter_a_wincount,fighter_b_wincount,draw_count,fighter_a_hits_taken,fighter_b_hits_taken = 0,0,0,[],[]
+fighter_a_mana_spent,fighter_a_spirit_spent,fighter_b_mana_spent,fighter_b_spirit_spent = [],[],[],[]
 
 # Set up a loop to run the simulation a number of times and record the outcomes
 for x in range(fight_count):
@@ -81,7 +81,10 @@ for x in range(fight_count):
     fighter_b_hits_taken.append(sum(fighter_b.maxhits)-sum(fighter_b.currhits))
 
     # Calculate resources spent
-    # PLACEHOLDER
+    fighter_a_mana_spent.append(fighter_a.get_resource_spent('mana'))
+    fighter_a_spirit_spent.append(fighter_a.get_resource_spent('spirit'))
+    fighter_b_mana_spent.append(fighter_b.get_resource_spent('mana'))
+    fighter_b_spirit_spent.append(fighter_b.get_resource_spent('spirit'))
 
 # Generalised Output stats
 print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')
@@ -89,3 +92,11 @@ print(fighter_b.name, 'won', fighter_b_wincount, '(', round((fighter_b_wincount/
 print(draw_count, '(', round((draw_count/fight_count)*100,2), '% ) fights ended in a draw')
 print(fighter_a.name, 'took', round(sum(fighter_a_hits_taken)/len(fighter_a_hits_taken),2),'points of damage on average')
 print(fighter_b.name, 'took', round(sum(fighter_b_hits_taken)/len(fighter_b_hits_taken),2),'points of damage on average')
+if sum(fighter_a_mana_spent) > 0:
+    print(fighter_a.name, 'used', round(sum(fighter_a_mana_spent)/len(fighter_a_mana_spent),2),'mana on average')
+if sum(fighter_a_spirit_spent) > 0:
+    print(fighter_a.name, 'used', round(sum(fighter_a_spirit_spent)/len(fighter_a_spirit_spent),2),'spirit on average')
+if sum(fighter_b_mana_spent) > 0:
+    print(fighter_b.name, 'used', round(sum(fighter_b_mana_spent)/len(fighter_b_mana_spent),2),'mana on average')
+if sum(fighter_b_spirit_spent) > 0:
+    print(fighter_b.name, 'used', round(sum(fighter_b_spirit_spent)/len(fighter_b_spirit_spent),2),'spirit on average')
