@@ -7,6 +7,9 @@ import status
 hit_location_names = ['Head','Off Hand','Body','Favoured Hand','Off Leg','Favoured Leg']
 base_hit_location_weightings = [4,1,4,6,1,4]
 
+# Initialise healing location priority - lets say the priority order is Head, Body, Favoured Hand, Favoured Leg, Off Leg, Off Hand
+heal_loc_priority = (0,2,3,5,4,1)
+
 # Initialise core statuses
 status_prone = status.Status('Prone', 0.75, [1.5,2,1,1,1,0.25])
 status_off_hand = status.Status('Using Off hand', 0.75, [1,1,1,1,1,1])
@@ -123,6 +126,11 @@ class Global(Creature):
         else:
             return 0
 
+    def heal_creature(self,healing):
+        'Apply healing to creature in a (somewhat) logical fashion'
+        # Global healing is simple, just don't let it overflow the maxhits
+        self.currhits[0] = min((self.currhits[0] + healing, self.maxhits[0]))
+
 class Locational(Creature):
     'Class which defines creatures with locational hits'
     name_hit_list = hit_location_names
@@ -202,6 +210,44 @@ class Locational(Creature):
         else:
             return 0
 
+    # Identify the ammount of damage a character has taken which can be healed
+    def get_healable_damage(self):
+        'Return the total ammount of damage which can still be healed (i.e to non-destroyed locations) the creature has taken'
+        healable_damage = 0
+        for x in range(len(self.maxhits)):
+            if self.currhits[x] > -3 and self.currhits[x] < self.maxhits[x]:
+                healable_damage += self.maxhits[x] - self.currhits[x]
+        return healable_damage
+
+    
+    def heal_creature(self,healing):
+        'Apply healing to creature in a (somewhat) logical fashion; prioritising the most wounded non-destroyed location and then a preset location order'
+        # Loop through assigning healing points one at a time  
+        for x in range(healing):
+            # Create a list of the still active locations and use that to find the "real minimum" once destroyed locations excluded
+            real_minhits = min(x for x in self.currhits if x > -3)
+            # Find the hit location numbers of any locations with the minimum number of current hits
+            minhit_location_list = [index for index,val in enumerate(self.currhits) if val == real_minhits]
+            # Loop through the healing priority list looking for locations that are also in the list of locations on minimum hits
+            for y in heal_loc_priority:
+                if y in minhit_location_list:
+                    # If the location is not on max already heal the location for one hit and reduce the number of remaining healing points by one, then break to the outer loop
+                    if self.currhits[y] < self.maxhits[y]:
+                        self.currhits[y] += 1
+                        healing -= 1
+                        break
+            # If we get to the end of the healing priority list without having healed anything heal any non-destroyed location on less than maximum in priority order
+            else:   
+                for z in heal_loc_priority:
+                    if self.currhits[y] > -3 and self.currhits [y] < self.maxhits[y]:
+                        self.currhits[y] += 1
+                        healing -= 1
+                        break
+                else:
+                    # If after all that we still haven't used the healing the target is fully healed and we can return
+                    return
+            
+
 class TreasureTrapPC(Locational):
     'Class for player characters built using the DUTT Ruleset'
     # Adds TT offense and defence into the creature
@@ -233,7 +279,12 @@ class TreasureTrapPC(Locational):
                 continue
             # Note : In exceptional cases the total of currhits can go negative, at which point no abilities will be spammed continually - not nessecarily wrong
             elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)):
-                return ability
+                # If the ability is healing to be used on self then skip over if any healing will be "wasted" because it exceeds damage which can be healed
+                # WARNING : This will be further complicated once multi party fights mean friendlies can be healed and when we introduce "heal sufficient"
+                if ability.type == 'abilityhealcreature' and 'self' in ability.target and self.get_healable_damage() < ability.healing:
+                    continue
+                else:
+                    return ability
         return None
 
     # TT Characters need their own damage_creature method which accounts for sources of armour
@@ -242,6 +293,7 @@ class TreasureTrapPC(Locational):
         # Note : Not official TT rules, but let's establish an order of operations that goes DAC, Spirit, Magic, Physical
         # Note : Damage types are not yet implemented
         # Loop over the armour attributes as long as there is still damage to assign
+        # ISSUE : Minor, but this allows hits to go below -3, which is not correct in TT
         for elm in ['glob_dac','glob_spirit_arm','glob_magic_arm']:
             x = getattr(self, elm)
             # If no armour of this type go to next one in the list

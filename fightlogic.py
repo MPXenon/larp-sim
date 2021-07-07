@@ -16,9 +16,12 @@ def use_ability(source,target,ability):
             target.apply_status(ability.associated_status,ability.associated_status_duration)
         elif 'self' in ability.target:
             source.apply_status(ability.associated_status,ability.associated_status_duration)
-    # If ability is direct damage dealing then deal direct damage to the target
-    if ability.type == 'abilitydamagedirect':
+    # If ability is direct damage and can target hostile then deal direct damage to the target
+    if ability.type == 'abilitydamagedirect' and 'hostile' in ability.target:
         target.damage_creature_direct(ability.damage)
+    # If ability is heal creature and can target self then heal source
+    if ability.type == 'abilityhealcreature' and 'self' in ability.target:
+        source.heal_creature(ability.healing)
     # If ability is affect creature
         #PLACEHOLDER
 

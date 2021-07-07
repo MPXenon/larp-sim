@@ -21,9 +21,10 @@ weapon_polearm = weapon.Weapon('Two Handed',2,[1,1,1,1,1,1.5])
 # Initialise abilities
 # Note : "Fast" abilities usually have minimum duration of 0 if they affect the current round only, while others should start at 1
 ability_glimmer = abilities.AbilityGrantStatus('Glimmer','hostile','fast','mana',1,status_distracted,0)
-ability_enhancement = abilities.AbilityGrantStatus('Enhancement','self','fast','mana',1,status_enhanced,0)
+ability_enhancement = abilities.AbilityGrantStatus('Enhancement',['self','friendly'],'fast','mana',1,status_enhanced,0)
 ability_fireball = abilities.AbilityDamageDirect('Fireball','hostile','interruptible','mana',4,3)
 ability_smite_ranged = abilities.AbilityDamageDirect('Smite','hostile','uninterruptible','spirit',1,6)
+ability_heal_two = abilities.AbilityHealCreature('Heal 2',['self','friendly'],'uninterruptible','spirit',1,2)
 
 # Initialise some simple creatures and place into a tuple to select from
 Fighter = creature.TreasureTrapPC('Fighter',1,[4,4,4,4,4,4],1,[weapon_shield],[],[1,1,1,1,1,1])
@@ -38,15 +39,16 @@ Darkness_Warlock = creature.TreasureTrapPC('Dark Warlock',1,[3,3,3,3,3,3],1,[],[
 Fire_Warlock = creature.TreasureTrapPC('Fire Warlock',1,[3,3,3,3,3,3],1,[],[ability_enhancement],[0,0,0,0,0,0],0,0,0,10)
 Fireball_Pyromancer = creature.TreasureTrapPC('Fireball Pyromancer',1,[3,3,3,3,3,3],1,[],[ability_fireball],[0,0,0,0,0,0],0,0,0,24)
 Blaster_Priest = creature.TreasureTrapPC('Blaster Priest',1,[3,3,3,3,3,3],1,[],[ability_smite_ranged],[0,0,0,0,0,0],0,2,0,0,5)
-Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock,Fire_Warlock,Fireball_Pyromancer,Blaster_Priest
+Basic_Healbot_Priest = creature.TreasureTrapPC('Basic Healbot Priest',1,[3,3,3,3,3,3],1,[],[ability_heal_two],[0,0,0,0,0,0],0,0,0,0,5)
+Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock,Fire_Warlock,Fireball_Pyromancer,Blaster_Priest,Basic_Healbot_Priest
 
 # Get text input from the user to select combatants and number of fights to simulate
 print('Choose creatures to fight:')
-print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock, 10 - Fire Warlock, 11 - Fireball Pyromancer, 12 - Blaster Priest')
+print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock, 10 - Fire Warlock, 11 - Fireball Pyromancer, 12 - Blaster Priest, 13 - Basic Healbot Priest')
 
 try:
-    fighter_a_selection = int(input('Pick a number from 1-12 to select first creature :'))-1
-    fighter_b_selection = int(input('Pick a number from 1-12 to select second creature :'))-1
+    fighter_a_selection = int(input('Pick a number from 1-13 to select first creature :'))-1
+    fighter_b_selection = int(input('Pick a number from 1-13 to select second creature :'))-1
     fight_count = int(input('Choose the number of fights to simulate:'))
     fighter_a = copy(Creature_Select[fighter_a_selection])
     fighter_b = copy(Creature_Select[fighter_b_selection])

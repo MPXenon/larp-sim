@@ -23,6 +23,14 @@ class AbilityDamageDirect(Ability):
         super().__init__(name,target,speed,resource_activate,resource_cost)
         self.damage = damage
 
+class AbilityHealCreature(Ability):
+    'Class that defines abilities which heal creatures'
+    type = 'abilityhealcreature'
+    # Note : This only supports immediate numerical healing abilities, it doesn't support "heal sufficient" or "lay on hands" miracles
+    def __init__(self,name,target,speed,resource_activate,resource_cost,healing):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.healing = healing
+
 class AbilityAffectCreature(Ability):
     'Class that defines abilities which directly modify non-hit point creature attributes'
     type = 'abilityaffectcreature'
