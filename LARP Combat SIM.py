@@ -100,3 +100,5 @@ if sum(fighter_b_mana_spent) > 0:
     print(fighter_b.name, 'used', round(sum(fighter_b_mana_spent)/len(fighter_b_mana_spent),2),'mana on average')
 if sum(fighter_b_spirit_spent) > 0:
     print(fighter_b.name, 'used', round(sum(fighter_b_spirit_spent)/len(fighter_b_spirit_spent),2),'spirit on average')
+
+input('Press Enter to Exit.....')
