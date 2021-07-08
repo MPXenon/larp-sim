@@ -132,11 +132,13 @@ for x in range(fight_count):
     fighter_a_hits_taken.append(sum(fighter_a.maxhits)-sum(fighter_a.currhits))
     fighter_b_hits_taken.append(sum(fighter_b.maxhits)-sum(fighter_b.currhits))
 
-    # Calculate resources spent
-    fighter_a_mana_spent.append(fighter_a.get_resource_spent('mana'))
-    fighter_a_spirit_spent.append(fighter_a.get_resource_spent('spirit'))
-    fighter_b_mana_spent.append(fighter_b.get_resource_spent('mana'))
-    fighter_b_spirit_spent.append(fighter_b.get_resource_spent('spirit'))
+    # Calculate resources spent if creature is a TTPC
+    if type(fighter_a).__name__ == 'TreasureTrapPC':
+        fighter_a_mana_spent.append(fighter_a.get_resource_spent('mana'))
+        fighter_a_spirit_spent.append(fighter_a.get_resource_spent('spirit'))
+    if type(fighter_b).__name__ == 'TreasureTrapPC':
+        fighter_b_mana_spent.append(fighter_b.get_resource_spent('mana'))
+        fighter_b_spirit_spent.append(fighter_b.get_resource_spent('spirit'))
 
 # Generalised Output stats
 print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')
