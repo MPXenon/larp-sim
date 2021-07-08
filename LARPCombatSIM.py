@@ -16,6 +16,7 @@ weapon_off_hand = weapon.Weapon('Off Hand Weapon',1.25,[1,3,1,0.5,2,0.5])
 weapon_off_hand_short = weapon.Weapon('Off Hand Short Weapon',1.3,[1,3,1,0.5,2,0.5])
 weapon_two_handed = weapon.Weapon('Two Handed',1.2,[1,3,1,0.5,1,1])
 weapon_polearm = weapon.Weapon('Two Handed',2,[1,1,1,1,1,1.5])
+weapon_select = weapon_shield,weapon_off_hand,weapon_off_hand_short,weapon_two_handed,weapon_polearm
 
 # Initialise abilities
 # Note : "Fast" abilities usually have minimum duration of 0 if they affect the current round only, while others should start at 1
@@ -24,6 +25,7 @@ ability_enhancement = abilities.AbilityGrantStatus('Enhancement',['self','friend
 ability_fireball = abilities.AbilityDamageDirect('Fireball','hostile','interruptible','mana',4,3)
 ability_smite_ranged = abilities.AbilityDamageDirect('Smite','hostile','uninterruptible','spirit',1,6)
 ability_heal_two = abilities.AbilityHealCreature('Heal 2',['self','friendly'],'uninterruptible','spirit',1,2)
+ability_select = ability_glimmer,ability_enhancement,ability_fireball,ability_smite_ranged,ability_heal_two
 
 # Initialise some simple creatures and place into a tuple to select from
 Fighter = creature.TreasureTrapPC('Fighter',1,[4,4,4,4,4,4],1,[weapon_shield],[],[1,1,1,1,1,1])
@@ -41,16 +43,66 @@ Blaster_Priest = creature.TreasureTrapPC('Blaster Priest',1,[3,3,3,3,3,3],1,[],[
 Basic_Healbot_Priest = creature.TreasureTrapPC('Basic Healbot Priest',1,[3,3,3,3,3,3],1,[],[ability_heal_two],[0,0,0,0,0,0],0,0,0,0,5)
 Creature_Select = Fighter,Scout,Berserker,Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar,Darkness_Warlock,Fire_Warlock,Fireball_Pyromancer,Blaster_Priest,Basic_Healbot_Priest
 
+# Very primitive Function to allow users to input a simple TT character from stdin
+def create_custom_character():
+    try:
+        char_name = str(input('Input character name:'))
+        char_rating = 1
+        char_hits_crit = int(input('Input hits per critical (head/body) location as an integer:'))
+        char_hits_limb = int(input('Input hits per limb location as an integer:'))
+        char_hits_max = [char_hits_limb for i in range(6)]
+        char_hits_max[0] = char_hits_crit
+        char_hits_max[2] = char_hits_crit
+        char_damage = int(input('Input damage call as an integer :'))
+        char_weapon_select = int(input('Select weapon: 0 - 42", 1 - 42" and Shield, 2 - Ambidex 42", 3 - Ambidex 42" and 24", 4 - 60" Two Hander, 5 - 72" Polearm :'))
+        if char_weapon_select == 0:
+            char_weapon = []
+        elif 0 < char_weapon_select <= 5:
+            char_weapon = [weapon_select[char_weapon_select-1]]
+        else:
+            raise
+        char_ability_select = int(input('Select one ability: 0 - None, 1 - Glimmer, 2 - Enhancement, 3 - Fireball, 4 - Ranged Smite , 5 - Heal 2 :'))
+        if char_ability_select == 0:
+            char_ability = []
+        elif 0 < char_ability_select <= 5:
+            char_ability = [ability_select[char_ability_select-1]]
+        else:
+            raise
+        char_armour_value = int(input('Input armour hits per location as an integer (for now all locations will be armoured the same):'))
+        char_loc_armour = [char_armour_value for i in range(6)]
+        char_dac = int(input('Input points of DAC as an integer:'))
+        char_spirit_arm = int(input('Input points of Spirit Armour as an integer:'))
+        char_magic_arm = int(input('Input points of Magic Armour as an integer:'))
+        char_mana = int(input('Input points of Mana as an integer:'))
+        char_spirit = int(input('Input points of Spirit as an integer:'))
+
+    except:
+        print('Invalid selection, shutting down')
+        exit()
+
+    return creature.TreasureTrapPC(char_name,char_rating,char_hits_max,char_damage,char_weapon,char_ability,char_loc_armour,char_dac,char_spirit_arm,char_magic_arm,char_mana,char_spirit)
+
 # Get text input from the user to select combatants and number of fights to simulate
 print('Choose creatures to fight:')
-print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock, 10 - Fire Warlock, 11 - Fireball Pyromancer, 12 - Blaster Priest, 13 - Basic Healbot Priest')
+print('1 - Fighter, 2 - Scout, 3 - Berserker, 4 - Peasant, 5- Goblin, 6 - Skeleton, 7 - Zombie, 8 - Lesser Alkar, 9 - Darkness Warlock, 10 - Fire Warlock, 11 - Fireball Pyromancer, 12 - Blaster Priest, 13 - Basic Healbot Priest, 14 - Custom')
 
 try:
     fighter_a_selection = int(input('Pick a number from 1-13 to select first creature :'))-1
     fighter_b_selection = int(input('Pick a number from 1-13 to select second creature :'))-1
     fight_count = int(input('Choose the number of fights to simulate:'))
-    fighter_a = copy(Creature_Select[fighter_a_selection])
-    fighter_b = copy(Creature_Select[fighter_b_selection])
+    if fighter_a_selection in range(len(Creature_Select)):
+        fighter_a = copy(Creature_Select[fighter_a_selection])
+    elif fighter_a_selection == len(Creature_Select):
+        fighter_a = create_custom_character()
+    else:
+        raise
+    if fighter_b_selection in range(len(Creature_Select)):
+        fighter_b = copy(Creature_Select[fighter_b_selection])
+    elif fighter_b_selection == len(Creature_Select):
+        fighter_b = create_custom_character()
+    else:
+        raise
+    
 except:
     print('Invalid selection, shutting down')
     exit()
