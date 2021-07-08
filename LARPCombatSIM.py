@@ -102,6 +102,9 @@ try:
         fighter_b = create_custom_character()
     else:
         raise
+    log_mode = int(input('Set logging mode: 0 - No Logging, 1 - Fight Outcomes Only, 2 - Round by Round'))
+    if log_mode not in [0,1,2]:
+        raise
     
 except:
     print('Invalid selection, shutting down')
@@ -113,32 +116,57 @@ fighter_a_mana_spent,fighter_a_spirit_spent,fighter_b_mana_spent,fighter_b_spiri
 
 # Set up a loop to run the simulation a number of times and record the outcomes
 for x in range(fight_count):
-
+    # Display fight number if logging enabled
+    if log_mode >=1:
+        print('Fight',x+1,':')
+    
     # Reset creatures to starting state
     fighter_a.initialize_creature()
     fighter_b.initialize_creature()
 
     #Run the fight
-    y = run_solo_encounter(fighter_a,fighter_b)
-    
-    if y == 0:
-        draw_count += 1
-    elif y == 1:
-        fighter_a_wincount += 1
-    elif y == 2:
-        fighter_b_wincount += 1
+    y = run_solo_encounter(fighter_a,fighter_b,log_mode)
 
     # Calculate hits taken
     fighter_a_hits_taken.append(sum(fighter_a.maxhits)-sum(fighter_a.currhits))
     fighter_b_hits_taken.append(sum(fighter_b.maxhits)-sum(fighter_b.currhits))
 
+    # Display fight outcomes if logging enabled
+    if log_mode >= 1:
+        print(fighter_a.name, 'took', fighter_a_hits_taken[-1], 'points of damage')
+        print(fighter_b.name, 'took', fighter_a_hits_taken[-1], 'points of damage')
+    
     # Calculate resources spent if creature is a TTPC
     if type(fighter_a).__name__ == 'TreasureTrapPC':
         fighter_a_mana_spent.append(fighter_a.get_resource_spent('mana'))
         fighter_a_spirit_spent.append(fighter_a.get_resource_spent('spirit'))
+        if log_mode >= 1:
+            if fighter_a_mana_spent[-1] > 0:
+                print(fighter_a.name, 'used', fighter_a_mana_spent[-1],'points of mana')
+            if fighter_a_spirit_spent[-1] > 0:
+                print(fighter_a.name, 'used', fighter_a_spirit_spent[-1],'points of spirit')
     if type(fighter_b).__name__ == 'TreasureTrapPC':
         fighter_b_mana_spent.append(fighter_b.get_resource_spent('mana'))
         fighter_b_spirit_spent.append(fighter_b.get_resource_spent('spirit'))
+        if log_mode >= 1:
+            if fighter_b_mana_spent[-1] > 0:
+                print(fighter_b.name, 'used', fighter_b_mana_spent[-1],'points of mana')
+            if fighter_b_spirit_spent[-1] > 0:
+                print(fighter_b.name, 'used', fighter_b_spirit_spent[-1],'points of spirit')
+
+    # Record outcome           
+    if y == 0:
+        draw_count += 1
+        if log_mode >= 1:
+            print('Fight was a draw')
+    elif y == 1:
+        fighter_a_wincount += 1
+        if log_mode >= 1:
+            print(fighter_a.name,'won the fight')
+    elif y == 2:
+        fighter_b_wincount += 1
+        if log_mode >= 1:
+            print(fighter_b.name,'won the fight')
 
 # Generalised Output stats
 print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')
