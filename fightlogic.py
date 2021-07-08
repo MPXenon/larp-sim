@@ -99,8 +99,14 @@ def run_solo_encounter(fighter_a,fighter_b,log_mode):
         # Determine potential hit locations
         hit_location_num_a = fighter_a.determine_hit_location()
         hit_location_num_b = fighter_b.determine_hit_location()
-        hit_location_name_a = hit_location_names[hit_location_num_a]
-        hit_location_name_b = hit_location_names[hit_location_num_b]
+        if type(fighter_a).__name__ in ['Global']:
+            hit_location_name_a = 'Global'
+        else:
+            hit_location_name_a = hit_location_names[hit_location_num_a]
+        if type(fighter_b).__name__ in ['Global']:
+            hit_location_name_b = 'Global'
+        else:
+            hit_location_name_b = hit_location_names[hit_location_num_b]
         
         # Perform the hit logic
         if 0 <= round_rand_hit < fighter_a_hit_chance :
