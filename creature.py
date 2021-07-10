@@ -282,8 +282,12 @@ class TreasureTrapPC(Locational):
             # If not enough resource, do not use ability - This won't support zero cost abilities as implmented, because of a divide by zero issue
             if getattr(self, curr) < ability.resource_cost:
                 continue
+            # Trigger resource usage when proportion of total hits, or hits on an individual critical location drop below proportion of remaining resource, or when an individual critical location drops to one
             # Note : In exceptional cases the total of currhits can go negative, at which point no abilities will be spammed continually - not nessecarily wrong though!
-            elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)):
+            elif getattr(self, curr)/getattr(self, max) > (sum(self.currhits)/sum(self.maxhits)) \
+                 or getattr(self, curr)/getattr(self, max) >= self.currhits[0]/self.maxhits[0]   \
+                 or getattr(self, curr)/getattr(self, max) >= self.currhits[2]/self.maxhits[2]   \
+                 or self.currhits[0] == 1 or self.currhits[2] == 1:
                 # If the ability is healing to be used on self then skip over if any healing will be "wasted" because it exceeds damage which can be healed
                 # WARNING : This will be further complicated once multi party fights mean friendlies can be healed or when we introduce "heal sufficient"
                 if ability.type == 'abilityhealcreature' and 'self' in ability.target and self.get_healable_damage() < ability.healing:
