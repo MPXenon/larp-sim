@@ -15,12 +15,14 @@ status_weakness = classdefs.Status('Weakened', status_damage_mod=-1)
 # Initialise any abilities used to deliver charges
 ability_weakness_discharge = classdefs.AbilityGrantStatus('Weakness','hostile','discharge',None,None,status_weakness,5*rounds_per_minute)
 ability_harm_discharge = classdefs.AbilityDamageLocation('Harm','hostile','discharge',None,None,2)
+ability_shock_discharge = classdefs.AbilityDamageLocation('Shock','hostile','discharge',None,None,2)
 
 # Initialise combat statuses required for abilities
 status_distracted = classdefs.Status('Distracted', status_rating_multi=0)
 status_enhanced = classdefs.Status('Enhanced', status_damage_mod=1)
 status_charge_weakness = classdefs.StatusCharged('Charge (Weakness)', ability_weakness_discharge,status_damage_multi=0)
 status_charge_harm = classdefs.StatusCharged('Charge (Harm)', ability_harm_discharge,status_damage_multi=0)
+status_charge_shock = classdefs.StatusCharged('Charge (Shock)', ability_shock_discharge,status_damage_multi=0)
 
 # Initialise weapons
 weapon_shield = classdefs.Weapon('Shield',1.5,[1,0.5,0.5,1,1,1])
@@ -41,6 +43,7 @@ ability_spirit_armour = classdefs.AbilityAffectCreature('Spirit Armour',['self',
 ability_barrier_self = classdefs.AbilityAffectCreature('Barrier Self',['self','friendly'],'interruptible','mana',2,'glob_magic_arm',2,'set')
 ability_weakness_charge = classdefs.AbilityGrantStatus('Weakness (Charge)','self','uninterruptible','spirit',1,status_charge_weakness,3)
 ability_harm_charge = classdefs.AbilityGrantStatus('Harm (Charge)','self','uninterruptible','spirit',1,status_charge_harm,3)
+ability_shock_charge = classdefs.AbilityGrantStatus('Shock (Charge)','self','uninterruptible','mana',2,status_charge_shock,3)
 ability_select = ability_glimmer,ability_enhancement,ability_fireball,ability_smite_ranged,ability_heal_two,ability_barrier_self,ability_weakness_charge
 
 # Initialise some simple creatures and place into a tuple to select from
@@ -52,9 +55,8 @@ Basic_Wight = classdefs.Global('Basic Wight',1,[12],2,[weapon_two_handed])
 Lesser_Alkar = classdefs.Global('Lesser Alkar',1,[10],1,[weapon_off_hand])
 Medium_Alkar = classdefs.Global('Medium Alkar',1,[20],2,[weapon_off_hand])
 Greater_Alkar = classdefs.Global('Greater Alkar',1,[30],3,[weapon_off_hand])
-Basic_Harm_Priest = classdefs.TreasureTrapPC('Basic harm priest',1,[3,3,3,3,3,3],1,[],[ability_harm_charge],[0,0,0,0,0,0],0,0,0,0,5)
 
-Creature_Select = Peasant,Goblin,Skeleton,Zombie,Basic_Wight,Lesser_Alkar,Medium_Alkar,Greater_Alkar,Basic_Harm_Priest
+Creature_Select = Peasant,Goblin,Skeleton,Zombie,Basic_Wight,Lesser_Alkar,Medium_Alkar,Greater_Alkar
 character_list = []
 
 # Get text input from the user to select combatants and number of fights to simulate
