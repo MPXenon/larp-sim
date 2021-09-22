@@ -335,6 +335,27 @@ class Locational(Creature):
 
 class TreasureTrapPC(Locational):
     'Class for player characters built using the DUTT Ruleset'
+    # Prepare output format string
+    characterformatstring="""
+    ================= 
+    Name : {name}
+    Damage : {damage}
+    Weapon : {weapon}
+    Location : Hits/Armour
+        Head : {headhits}/{headarmour}
+        Off Hand : {offhandhits}/{offhandarmour}
+        Body : {bodyhits}/{bodyarmour}
+        Favoured Hand : {favhandhits}/{favhandarmour}
+        Off Leg : {offleghits}/{offlegarmour} 
+        Favoured Leg : {favleghits}/{favlegarmour}
+    DAC : {dac}
+    Spirit Armour : {spiritarm}
+    Magic Armour : {magicarm}
+    Abilities : {ability}
+    Spirit Points : {spiritpoints}
+    Mana Points : {manapoints}
+    =================
+    """
     # Adds TT offense and defence into the creature
     def __init__(self,name,base_rating,maxhits,base_damage,weapons=[],abilities=[],loc_armour=[0,0,0,0,0,0],
                 glob_dac=0,glob_spirit_arm=0,glob_magic_arm=0,mana_points=0,spirit_points=0,alchemy_points=0,herb_points=0):
@@ -344,6 +365,18 @@ class TreasureTrapPC(Locational):
         self.loc_armour,self.glob_dac,self.glob_spirit_arm,self.glob_magic_arm = list.copy(loc_armour),glob_dac,glob_spirit_arm,glob_magic_arm
         self.mana_points_max,self.spirit_points_max,self.alchemy_points_max,self.herb_points_max  = mana_points,spirit_points,alchemy_points,herb_points
         self.mana_points,self.spirit_points,self.alchemy_points,self.herb_points = mana_points,spirit_points,alchemy_points,herb_points
+    
+    def __str__(self):
+        return self.characterformatstring.format(name=self.name,damage=self.base_damage,weapon=self.weapons[0].name,
+            headhits=self.maxhits[0],headarmour=self.loc_armour_max[0],  
+            offhandhits=self.maxhits[1],offhandarmour=self.loc_armour_max[1], 
+            bodyhits=self.maxhits[2],bodyarmour=self.loc_armour_max[2],
+            favhandhits=self.maxhits[3],favhandarmour=self.loc_armour_max[3],
+            offleghits=self.maxhits[4],offlegarmour=self.loc_armour_max[4],
+            favleghits=self.maxhits[5],favlegarmour=self.loc_armour_max[5],
+            dac=self.glob_dac_max,spiritarm=self.glob_spirit_arm_max,magicarm=self.glob_magic_arm_max,
+            ability="WIP",spiritpoints=self.spirit_points_max,manapoints=self.mana_points_max
+        )
 
     # TT Characters need an extended initialisation method to reset armour and resources
     def initialize_creature(self):
