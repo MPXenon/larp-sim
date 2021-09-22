@@ -12,17 +12,20 @@ def log_ability_use(source,target,ability,log_mode):
     'Function to record ability usage in text log'
     if log_mode == 2:
         print(source.name,'used',ability.name,'on',target.name)
-        print(source.name,'has',getattr(source,ability.resource_activate + '_points'),'of',getattr(source,ability.resource_activate + '_points_max'),ability.resource_activate,'remaining')
+        # If resource spend then show remaining
+        if ability.resource_activate != None:
+            print(source.name,'has',getattr(source,ability.resource_activate + '_points'),'of',getattr(source,ability.resource_activate + '_points_max'),ability.resource_activate,'remaining')
 
-def log_hit(source,target,location_number,location_name,log_mode):
+def log_hit(source,target,location_number,location_name,damage,log_mode):
     if log_mode == 2:
-        print(source.name, 'hits the', location_name, 'of', target.name)
+        print(source.name, 'hits the', location_name, 'of', target.name, 'for', damage, 'damage')
         print(target.name, location_name, 'has', target.currhits[location_number], 'of', target.maxhits[location_number],'hits remaining')
 
 def use_ability(source,target,ability,log_mode):
     'Function for source creature to use ability in fight with target'
-    # Spend source creature resource
-    setattr(source,ability.resource_activate + '_points',getattr(source,ability.resource_activate + '_points') - ability.resource_cost)
+    # Spend source creature resource if applicable
+    if ability.resource_activate != None:
+        setattr(source,ability.resource_activate + '_points',getattr(source,ability.resource_activate + '_points') - ability.resource_cost)
     # If ability is a status granting ability set status on appropriate ability target
     if ability.type == 'abilitygrantstatus':
         if 'hostile' in ability.target:
@@ -58,6 +61,14 @@ def use_ability_slow(source,target,ability,source_was_hit,log_mode):
     elif (ability.speed == 'interruptible' and source_was_hit == 0) or (ability.speed == 'uninterruptible' and source.check_incapacitated() == 0):
         use_ability(source,target,ability,log_mode)
 
+def trigger_charges(source,target,log_mode):
+    'Function for any stored charges on source creature to be discharged and their abilities activated'
+    # Create a list of any abilities triggered from stored charges on the source creature
+    discharge_abil_list = [stat.charged_ability for stat in source.status if stat.type == 'statuscharge']
+    # Loop through this list triggering the charged abilities
+    for abil in discharge_abil_list:
+        use_ability(source,target,abil,log_mode)
+
 def run_solo_encounter(fighter_a,fighter_b,log_mode):
     'Run a solo encounter between fighter_a and fighter_b and return 0 for a draw, 1 for a fighter_a win and 2 for a fighter_b win'
     # Initialize round counter
@@ -78,7 +89,7 @@ def run_solo_encounter(fighter_a,fighter_b,log_mode):
         fighter_a_was_hit,fighter_b_was_hit = 0,0
 
         # Check if the parties will use any abilities and return the ones they will use
-        fighter_a_use_ability,fighter_b_use_ability = fighter_a.check_use_ability(),fighter_b.check_use_ability()
+        fighter_a_use_ability,fighter_b_use_ability = fighter_a.check_use_ability(fighter_b),fighter_b.check_use_ability(fighter_a)
 
         # Implement logic for using fast abilities - need to do this before we calculate fighter ratings as it can modify them
         # Note : "Combo's" like Glimmer + Enhancement would need to implemented as their own "Ability" - since only one ability is ever used per round
@@ -111,21 +122,25 @@ def run_solo_encounter(fighter_a,fighter_b,log_mode):
         else:
             hit_location_name_b = hit_location_names[hit_location_num_b]
         
-        # Perform the hit logic
+        # Perform the hit logic and launch any charge abilities
         if 0 <= round_rand_hit < fighter_a_hit_chance :
             fighter_b.damage_creature(hit_location_num_b,fighter_a.damage)
             fighter_b_was_hit = 1
-            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,log_mode)
+            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,fighter_a.damage,log_mode)
+            trigger_charges(fighter_a,fighter_b,log_mode)
         elif fighter_a_hit_chance <= round_rand_hit < (fighter_a_hit_chance+chance_trade) :
             fighter_b.damage_creature(hit_location_num_b,fighter_a.damage)
             fighter_a.damage_creature(hit_location_num_a,fighter_b.damage)
             fighter_a_was_hit,fighter_b_was_hit = 1,1
-            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,log_mode)
-            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,log_mode)
+            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,fighter_a.damage,log_mode)
+            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,fighter_b.damage,log_mode)
+            trigger_charges(fighter_a,fighter_b,log_mode)
+            trigger_charges(fighter_b,fighter_a,log_mode)
         elif (fighter_a_hit_chance+chance_trade) <= round_rand_hit <= 1 :
             fighter_a.damage_creature(hit_location_num_a,fighter_b.damage)
             fighter_a_was_hit = 1
-            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,log_mode)
+            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,fighter_b.damage,log_mode)
+            trigger_charges(fighter_b,fighter_a,log_mode)
         else :
             print('Error: Unspecified combat round outcome')
             exit()

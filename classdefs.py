@@ -9,15 +9,22 @@ class FileItem():
 # Setup a class for statuses
 class Status(FileItem):
     'Class that defines statuses which affect combat'
-
+    type = 'statusbasic'
     def __init__(self,name,status_rating_multi=1,status_hit_multi=[1,1,1,1,1,1],status_damage_mod=0,status_damage_multi=1):
         self.name,self.status_rating_multi,self.status_hit_multi = name,status_rating_multi,status_hit_multi
         self.status_damage_mod,self.status_damage_multi = status_damage_mod,status_damage_multi
 
+# Setup a subclass for "Charged" ability statuses
+class StatusCharged(Status):
+    'Class that defines statuses which grant charges of abilities'
+    type = 'statuscharge'
+    def __init__(self,name,charged_ability,status_rating_multi=1,status_hit_multi=[1,1,1,1,1,1],status_damage_mod=0,status_damage_multi=1):
+        super().__init__(name,status_rating_multi,status_hit_multi,status_damage_mod,status_damage_multi)
+        self.charged_ability = charged_ability
+
 # Setup a class for weapons
 class Weapon(FileItem):
     'Class that defines weapons which affect combat'
-
     def __init__(self,name,weapon_rating_multi,weapon_hit_multi):
         self.name,self.weapon_rating_multi,self.weapon_hit_multi = name,weapon_rating_multi,weapon_hit_multi
 
@@ -53,8 +60,9 @@ class AbilityHealCreature(Ability):
         self.healing = healing
 
 class AbilityAffectCreature(Ability):
-    'Class that defines abilities which directly modify non-hit point creature attributes'
+    'Class that defines abilities which directly modify certain creature attributes'
     # Note : This functions in two "modes"; abilities which set the value, and abilities which modify the value
+    # Note : Only designed to work with resources or global armour (i.e "instantaneous changes") - to modify damage or rating use a status
     type = 'abilityaffectcreature'
     def __init__(self,name,target,speed,resource_activate,resource_cost,attribute_target,attribute_mod,attribute_change_mode):
         super().__init__(name,target,speed,resource_activate,resource_cost)
@@ -117,7 +125,7 @@ class Creature(FileItem):
         'Reset a creatures perameters to the base state'
         self.status,self.status_durations,self.currhits = [],[],list.copy(self.maxhits)
 
-    def check_use_ability(self):
+    def check_use_ability(self,target):
         'Check if creature will use a special ability this round and which they will use'
         return None
 
@@ -138,7 +146,9 @@ class Creature(FileItem):
     
     def damage_creature(self,hit_location_num,damage):
         'Apply damage to a location on a creature based on the appropriate logic for its type'
-        self.currhits[hit_location_num] -= damage
+        # Don't apply damage if it would be zero or less
+        if damage >= 0:
+            self.currhits[hit_location_num] -= damage
 
     def apply_status(self,newstatus,newstatus_duration):
         'Apply a status to a creature; -1 for permanent durations'
@@ -175,7 +185,8 @@ class Global(Creature):
 
     def damage_creature_direct(self,damage):
         'Apply direct damage to a creature based on the appropriate logic for its type'
-        self.currhits[0] -= damage
+        if damage >= 0:
+            self.currhits[0] -= damage
 
     def check_incapacitated(self):
         'Return 1 if the creature is incapacitated and incapable of fighting and 0 otherwise'
@@ -241,28 +252,30 @@ class Locational(Creature):
     
     def damage_creature(self,hit_location_num,damage):
         'Apply damage to a location on a creature based on the appropriate logic for its type'
-        # Store the pre-damage hits for status checks later on
-        _oldhits = list.copy(self.currhits)
-        # For locational creatures we need to check if the location is a limb and if it is already destroyed
-        if hit_location_num not in [0,2] and self.currhits[hit_location_num] <= -3:
-            # If so redirect damage to body and prevent hits going below -3
-            self.currhits[2] = max((self.currhits[2] - damage),-3)
-        # Otherwise apply damage as normal
-        else:
-            self.currhits[hit_location_num] = max((self.currhits[hit_location_num] - damage),-3)
-        # Applying wounding based statuses
-        # "Prone" status - Apply when either leg is hit and drops to zero
-        if hit_location_num in [4,5] and _oldhits[hit_location_num] > 0 and self.currhits[hit_location_num] <= 0:
-            self.apply_status(status_prone,-1)
-        # When Favoured Hand is hit and drops below zero apply "Using Off Hand" permanently and "Disarmed" for one round
-        if hit_location_num == 1 and _oldhits[hit_location_num] >=0 and self.currhits[hit_location_num] <= 0:
-            self.apply_status(status_off_hand,-1)
-            self.apply_status(status_disarmed,1) 
+        if damage >= 0:
+            # Store the pre-damage hits for status checks later on
+            _oldhits = list.copy(self.currhits)
+            # For locational creatures we need to check if the location is a limb and if it is already destroyed
+            if hit_location_num not in [0,2] and self.currhits[hit_location_num] <= -3:
+                # If so redirect damage to body and prevent hits going below -3
+                self.currhits[2] = max((self.currhits[2] - damage),-3)
+            # Otherwise apply damage as normal
+            else:
+                self.currhits[hit_location_num] = max((self.currhits[hit_location_num] - damage),-3)
+            # Applying wounding based statuses
+            # "Prone" status - Apply when either leg is hit and drops to zero
+            if hit_location_num in [4,5] and _oldhits[hit_location_num] > 0 and self.currhits[hit_location_num] <= 0:
+                self.apply_status(status_prone,-1)
+            # When Favoured Hand is hit and drops below zero apply "Using Off Hand" permanently and "Disarmed" for one round
+            if hit_location_num == 1 and _oldhits[hit_location_num] >=0 and self.currhits[hit_location_num] <= 0:
+                self.apply_status(status_off_hand,-1)
+                self.apply_status(status_disarmed,1) 
 
     def damage_creature_direct(self,damage):
         'Apply direct damage to a creature based on the appropriate logic for its type'
         # On a locational creature direct damage goes straight to the body
-        self.damage_creature(2,damage)
+        if damage >= 0:
+            self.damage_creature(2,damage)
 
     def check_incapacitated(self):
         'Return 1 if the creature is incapacitated and incapable of fighting and 0 otherwise'
@@ -331,7 +344,7 @@ class TreasureTrapPC(Locational):
         self.mana_points,self.spirit_points,self.alchemy_points,self.herb_points = self.mana_points_max,self.spirit_points_max,self.alchemy_points_max,self.herb_points_max
 
     # TT Characters can use special abilities if they have enough resources, need a check to see which they will use them in a combat round
-    def check_use_ability(self):
+    def check_use_ability(self,target):
         'Return 1 and the ability they will use if creature will use a special ability this round, else return 0 and None'
         # Now that we have abilities as objects which are then listed in the creatures abilities we can just loop over them to check which to use
         # This means we are assuming the list of abilities is priority ranked, which makes sense and lets us adjust "strategies"
@@ -354,6 +367,19 @@ class TreasureTrapPC(Locational):
                 # WARNING : Simple logic for now, don't recast if there's any of the attribute left
                 elif ability.type == 'abilityaffectcreature' and 'self' in ability.target and getattr(self,ability.attribute_target) > 0:
                     continue
+                # If the ability is a status ability don't cast it again if it would cause a duplicate status and thus have no effect
+                # WARNING : There is a rare edge case getting through all these checks that I need to find - need to do a massive data dump to ID
+                # Note : Status checks will only check for exact matches, not just "similar" statuses - so need to be consistent with statuses which can come from multiple sources
+                elif ability.type == 'abilitygrantstatus' and 'self' in ability.target and (ability.associated_status in self.status):
+                    continue
+                elif ability.type == 'abilitygrantstatus' and 'hostile' in ability.target and (ability.associated_status in target.status):
+                    continue
+                # If the ability is a charge ability don't cast it if already holding a charge
+                elif ability.associated_status.type == 'statuscharge' and 'statuscharge' in [stat.type for stat in self.status if stat.type == 'statuscharge']:
+                    continue  
+                # If the ability is a charge ability don't cast it if the status of the discharged ability from the charged status is already on the target
+                elif ability.associated_status.type == 'statuscharge' and (ability.associated_status.charged_ability.associated_status in target.status):
+                    continue
                 else:
                     return ability
                 
@@ -368,33 +394,34 @@ class TreasureTrapPC(Locational):
     # TT Characters need their own damage_creature method which accounts for sources of armour
     def damage_creature(self,hit_location_num,damage):
         'Apply damage to a location on a creature based on the appropriate logic for its type'
-        # Note : Not official TT rules, but let's establish an order of operations that goes DAC, Spirit, Magic, Physical
-        # Note : Damage types are not yet implemented
-        # Loop over the armour attributes as long as there is still damage to assign
-        for elm in ['glob_dac','glob_spirit_arm','glob_magic_arm']:
-            x = getattr(self, elm)
-            # If no armour of this type go to next one in the list
-            if x == 0:
-                continue
-            # Establish if the damage is completely negated by this armour and if so reduce armour and return
-            elif damage <= x:
-                setattr(self,elm,x-damage)
-                return
-            # Otherwise calculate the remaining damage and reduce armour to zero
-            else:
-                damage -= x
-                setattr(self,elm,0)
-        # We do the physical locational armour seperately because the attribute takes the form of a list
-        if self.loc_armour[hit_location_num] > 0:
-            if damage <= self.loc_armour[hit_location_num]:
-                self.loc_armour[hit_location_num] -= damage
-                return
-            else:
-                damage -= self.loc_armour[hit_location_num]
-                self.loc_armour[hit_location_num] = 0
-                
-        # Run the rest of the damage logic for a locational with any remaining damage
-        super().damage_creature(hit_location_num,damage)
+        if damage >= 0:
+            # Note : Not official TT rules, but let's establish an order of operations that goes DAC, Spirit, Magic, Physical
+            # Note : Damage types are not yet implemented
+            # Loop over the armour attributes as long as there is still damage to assign
+            for elm in ['glob_dac','glob_spirit_arm','glob_magic_arm']:
+                x = getattr(self, elm)
+                # If no armour of this type go to next one in the list
+                if x == 0:
+                    continue
+                # Establish if the damage is completely negated by this armour and if so reduce armour and return
+                elif damage <= x:
+                    setattr(self,elm,x-damage)
+                    return
+                # Otherwise calculate the remaining damage and reduce armour to zero
+                else:
+                    damage -= x
+                    setattr(self,elm,0)
+            # We do the physical locational armour seperately because the attribute takes the form of a list
+            if self.loc_armour[hit_location_num] > 0:
+                if damage <= self.loc_armour[hit_location_num]:
+                    self.loc_armour[hit_location_num] -= damage
+                    return
+                else:
+                    damage -= self.loc_armour[hit_location_num]
+                    self.loc_armour[hit_location_num] = 0
+                    
+            # Run the rest of the damage logic for a locational with any remaining damage
+            super().damage_creature(hit_location_num,damage)
     
     # TT Characters need a method which allows non-hit point attributes to be changed, such as adding locational armour
     def change_attribute_creature(self,attribute_target,type,modnum):

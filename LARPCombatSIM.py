@@ -4,9 +4,21 @@ from fightlogic import run_solo_encounter
 from sys import exit
 import jsonpickle
 
+# Initialise other variables
+# Currently assuming 10 rounds per minute as an approximation for spells with durations
+rounds_per_minute = 10
+
+# Order of initialisation becomes important for charged ablities
+# Initialise any statuses infliced by charge delivering abilities
+status_weakness = classdefs.Status('Weakened', status_damage_mod=-1)
+
+# Initialise any abilities used to deliver charges
+ability_weakness_discharge = classdefs.AbilityGrantStatus('Weakness','hostile','discharge',None,None,status_weakness,5*rounds_per_minute)
+
 # Initialise combat statuses required for abilities
 status_distracted = classdefs.Status('Distracted', status_rating_multi=0)
 status_enhanced = classdefs.Status('Enhanced', status_damage_mod=1)
+status_charge_weakness = classdefs.StatusCharged('Charge (Weakness)', ability_weakness_discharge)
 
 # Initialise weapons
 weapon_shield = classdefs.Weapon('Shield',1.5,[1,0.5,0.5,1,1,1])
@@ -25,7 +37,8 @@ ability_smite_ranged = classdefs.AbilityDamageDirect('Smite','hostile','uninterr
 ability_heal_two = classdefs.AbilityHealCreature('Heal 2',['self','friendly'],'uninterruptible','spirit',1,2)
 ability_spirit_armour = classdefs.AbilityAffectCreature('Spirit Armour',['self','friendly'],'uninterruptible','spirit',1,'glob_spirit_arm',3,'set')
 ability_barrier_self = classdefs.AbilityAffectCreature('Barrier Self',['self','friendly'],'interruptible','mana',2,'glob_magic_arm',2,'set')
-ability_select = ability_glimmer,ability_enhancement,ability_fireball,ability_smite_ranged,ability_heal_two,ability_barrier_self
+ability_weakness_charge = classdefs.AbilityGrantStatus('Weakness (Charge)','self','uninterruptible','spirit',1,status_charge_weakness,3)
+ability_select = ability_glimmer,ability_enhancement,ability_fireball,ability_smite_ranged,ability_heal_two,ability_barrier_self,ability_weakness_charge
 
 # Initialise some simple creatures and place into a tuple to select from
 Peasant = classdefs.Locational('Peasant',1,[3,3,3,3,3,3],1)
@@ -33,6 +46,7 @@ Goblin = classdefs.Locational('Goblin',1,[2,2,2,2,3,3],1)
 Skeleton = classdefs.Global('Skeleton',1,[6],1)
 Zombie = classdefs.Global('Zombie',0.5,[9],2)
 Lesser_Alkar = classdefs.Global('Lesser Alkar',1,[10],1,[weapon_off_hand])
+
 Creature_Select = Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar
 character_list = []
 
