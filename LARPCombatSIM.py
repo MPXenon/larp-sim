@@ -14,11 +14,13 @@ status_weakness = classdefs.Status('Weakened', status_damage_mod=-1)
 
 # Initialise any abilities used to deliver charges
 ability_weakness_discharge = classdefs.AbilityGrantStatus('Weakness','hostile','discharge',None,None,status_weakness,5*rounds_per_minute)
+ability_harm_discharge = classdefs.AbilityDamageLocation('Harm','hostile','discharge',None,None,2)
 
 # Initialise combat statuses required for abilities
 status_distracted = classdefs.Status('Distracted', status_rating_multi=0)
 status_enhanced = classdefs.Status('Enhanced', status_damage_mod=1)
-status_charge_weakness = classdefs.StatusCharged('Charge (Weakness)', ability_weakness_discharge)
+status_charge_weakness = classdefs.StatusCharged('Charge (Weakness)', ability_weakness_discharge,status_damage_multi=0)
+status_charge_harm = classdefs.StatusCharged('Charge (Harm)', ability_harm_discharge,status_damage_multi=0)
 
 # Initialise weapons
 weapon_shield = classdefs.Weapon('Shield',1.5,[1,0.5,0.5,1,1,1])
@@ -38,6 +40,7 @@ ability_heal_two = classdefs.AbilityHealCreature('Heal 2',['self','friendly'],'u
 ability_spirit_armour = classdefs.AbilityAffectCreature('Spirit Armour',['self','friendly'],'uninterruptible','spirit',1,'glob_spirit_arm',3,'set')
 ability_barrier_self = classdefs.AbilityAffectCreature('Barrier Self',['self','friendly'],'interruptible','mana',2,'glob_magic_arm',2,'set')
 ability_weakness_charge = classdefs.AbilityGrantStatus('Weakness (Charge)','self','uninterruptible','spirit',1,status_charge_weakness,3)
+ability_harm_charge = classdefs.AbilityGrantStatus('Harm (Charge)','self','uninterruptible','spirit',1,status_charge_harm,3)
 ability_select = ability_glimmer,ability_enhancement,ability_fireball,ability_smite_ranged,ability_heal_two,ability_barrier_self,ability_weakness_charge
 
 # Initialise some simple creatures and place into a tuple to select from
@@ -45,9 +48,13 @@ Peasant = classdefs.Locational('Peasant',1,[3,3,3,3,3,3],1)
 Goblin = classdefs.Locational('Goblin',1,[2,2,2,2,3,3],1)
 Skeleton = classdefs.Global('Skeleton',1,[6],1)
 Zombie = classdefs.Global('Zombie',0.5,[9],2)
+Basic_Wight = classdefs.Global('Basic Wight',1,[12],2,[weapon_two_handed])
 Lesser_Alkar = classdefs.Global('Lesser Alkar',1,[10],1,[weapon_off_hand])
+Medium_Alkar = classdefs.Global('Medium Alkar',1,[20],2,[weapon_off_hand])
+Greater_Alkar = classdefs.Global('Greater Alkar',1,[30],3,[weapon_off_hand])
+Basic_Harm_Priest = classdefs.TreasureTrapPC('Basic harm priest',1,[3,3,3,3,3,3],1,[],[ability_harm_charge],[0,0,0,0,0,0],0,0,0,0,5)
 
-Creature_Select = Peasant,Goblin,Skeleton,Zombie,Lesser_Alkar
+Creature_Select = Peasant,Goblin,Skeleton,Zombie,Basic_Wight,Lesser_Alkar,Medium_Alkar,Greater_Alkar,Basic_Harm_Priest
 character_list = []
 
 # Get text input from the user to select combatants and number of fights to simulate
@@ -115,7 +122,8 @@ fighter_a_mana_spent,fighter_a_spirit_spent,fighter_b_mana_spent,fighter_b_spiri
 for x in range(fight_count):
     # Display fight number if logging enabled
     if log_mode >=1:
-        print('Fight',x+1,':')
+        print('\nStarting Fight',x+1)
+        print('=================')
     
     # Reset creatures to starting state
     fighter_a.initialize_creature()
@@ -130,6 +138,8 @@ for x in range(fight_count):
 
     # Display fight outcomes if logging enabled
     if log_mode >= 1:
+        print('\nEnd of Fight',x)
+        print('=================')
         print(fighter_a.name, 'took', fighter_a_hits_taken[-1], 'points of damage')
         print(fighter_b.name, 'took', fighter_a_hits_taken[-1], 'points of damage')
     
@@ -156,6 +166,7 @@ for x in range(fight_count):
         draw_count += 1
         if log_mode >= 1:
             print('Fight was a draw')
+            
     elif y == 1:
         fighter_a_wincount += 1
         if log_mode >= 1:
@@ -166,6 +177,8 @@ for x in range(fight_count):
             print(fighter_b.name,'won the fight')
 
 # Generalised Output stats
+print('\nEnd of Simulation',fight_count,'fights')
+print('==============================')
 print(fighter_a.name, 'won', fighter_a_wincount, '(', round((fighter_a_wincount/fight_count)*100,2), '% ) fights')
 print(fighter_b.name, 'won', fighter_b_wincount, '(', round((fighter_b_wincount/fight_count)*100,2), '% ) fights')
 print(draw_count, '(', round((draw_count/fight_count)*100,2), '% ) fights ended in a draw')
@@ -180,4 +193,4 @@ if sum(fighter_b_mana_spent) > 0:
 if sum(fighter_b_spirit_spent) > 0:
     print(fighter_b.name, 'used', round(sum(fighter_b_spirit_spent)/len(fighter_b_spirit_spent),2),'spirit on average')
 
-input('Press Enter to Exit.....')
+input('\nPress Enter to Exit.....')

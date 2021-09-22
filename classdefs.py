@@ -50,6 +50,15 @@ class AbilityDamageDirect(Ability):
     def __init__(self,name,target,speed,resource_activate,resource_cost,damage):
         super().__init__(name,target,speed,resource_activate,resource_cost)
         self.damage = damage
+    
+class AbilityDamageLocation(Ability):
+    'Class that defines abilities which deal damage which hits the struck location'
+    type = 'abilitydamagelocation'
+    # This exists for the purpose of charge abilities
+    # Note : Damage types not implemented
+    def __init__(self,name,target,speed,resource_activate,resource_cost,damage):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.damage = damage
 
 class AbilityHealCreature(Ability):
     'Class that defines abilities which heal creatures'
@@ -378,7 +387,8 @@ class TreasureTrapPC(Locational):
                 elif ability.associated_status.type == 'statuscharge' and 'statuscharge' in [stat.type for stat in self.status if stat.type == 'statuscharge']:
                     continue  
                 # If the ability is a charge ability don't cast it if the status of the discharged ability from the charged status is already on the target
-                elif ability.associated_status.type == 'statuscharge' and (ability.associated_status.charged_ability.associated_status in target.status):
+                # ERROR : Issue with non status charge abilities
+                elif ability.associated_status.type == 'statuscharge' and (getattr(ability.associated_status.charged_ability,'associated_status','MISSING') in target.status):
                     continue
                 else:
                     return ability
