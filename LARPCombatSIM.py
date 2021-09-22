@@ -70,7 +70,7 @@ def load_custom_character():
 
 
 try:
-    fighter_a_selection = int(input('Pick a number from 1-'+str(len(Creature_Select)+1)+' to select first creature : 6'))-1
+    fighter_a_selection = int(input('Pick a number from 1-'+str(len(Creature_Select)+1)+' to select first creature : '))-1
     if fighter_a_selection in range(len(Creature_Select)):
         fighter_a = copy(Creature_Select[fighter_a_selection])
     elif fighter_a_selection == len(Creature_Select):

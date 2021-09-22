@@ -8,42 +8,41 @@ chance_trade_base = 0.5
 # Initialise hit location names for logging
 hit_location_names = ['Head','Off Hand','Body','Favoured Hand','Off Leg','Favoured Leg']
 
+def log_ability_use(source,target,ability,log_mode):
+    'Function to record ability usage in text log'
+    if log_mode == 2:
+        print(source.name,'used',ability.name,'on',target.name)
+        print(source.name,'has',getattr(source,ability.resource_activate + '_points'),'of',getattr(source,ability.resource_activate + '_points_max'),ability.resource_activate,'remaining')
+
+def log_hit(source,target,location_number,location_name,log_mode):
+    if log_mode == 2:
+        print(source.name, 'hits the', location_name, 'of', target.name)
+        print(target.name, location_name, 'has', target.currhits[location_number], 'of', target.maxhits[location_number],'hits remaining')
+
 def use_ability(source,target,ability,log_mode):
     'Function for source creature to use ability in fight with target'
     # Spend source creature resource
-    source_resource_spend = ability.resource_activate + '_points'
-    source_resource_max = ability.resource_activate + '_points_max'
-    setattr(source,source_resource_spend,getattr(source,source_resource_spend) - ability.resource_cost)
+    setattr(source,ability.resource_activate + '_points',getattr(source,ability.resource_activate + '_points') - ability.resource_cost)
     # If ability is a status granting ability set status on appropriate ability target
     if ability.type == 'abilitygrantstatus':
         if 'hostile' in ability.target:
             target.apply_status(ability.associated_status,ability.associated_status_duration)
-            if log_mode == 2:
-                print(source.name,'used',ability.name,'on',target.name)
-                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+            log_ability_use(source,target,ability,log_mode)
         elif 'self' in ability.target:
             source.apply_status(ability.associated_status,ability.associated_status_duration)
-            if log_mode == 2:
-                print(source.name,'used',ability.name,'on',source.name)
-                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+            log_ability_use(source,source,ability,log_mode)
     # If ability is direct damage and can target hostile then deal direct damage to the target
     if ability.type == 'abilitydamagedirect' and 'hostile' in ability.target:
         target.damage_creature_direct(ability.damage)
-        if log_mode == 2:
-            print(source.name,'used',ability.name,'on',target.name)
-            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+        log_ability_use(source,target,ability,log_mode)
     # If ability is heal creature and can target self then heal source
     if ability.type == 'abilityhealcreature' and 'self' in ability.target:
         source.heal_creature(ability.healing)
-        if log_mode == 2:
-            print(source.name,'used',ability.name,'on',source.name)
-            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+        log_ability_use(source,source,ability,log_mode)
     # If ability is affect creature - currently self only
     if ability.type == 'abilityaffectcreature' and 'self' in ability.target:
         source.change_attribute_creature(ability.attribute_target,ability.attribute_change_mode,ability.attribute_mod)
-        if log_mode == 2:
-            print(source.name,'used',ability.name,'on',source.name)
-            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+        log_ability_use(source,source,ability,log_mode)
 
 def use_ability_fast(source,target,ability,log_mode):
     'Function for source creature to use selected ability in fight with target if it is a valid fast ability'
@@ -61,7 +60,7 @@ def use_ability_slow(source,target,ability,source_was_hit,log_mode):
 
 def run_solo_encounter(fighter_a,fighter_b,log_mode):
     'Run a solo encounter between fighter_a and fighter_b and return 0 for a draw, 1 for a fighter_a win and 2 for a fighter_b win'
-    #Initialize round counter
+    # Initialize round counter
     round_count = 0
     
     # Round Loops
@@ -116,24 +115,17 @@ def run_solo_encounter(fighter_a,fighter_b,log_mode):
         if 0 <= round_rand_hit < fighter_a_hit_chance :
             fighter_b.damage_creature(hit_location_num_b,fighter_a.damage)
             fighter_b_was_hit = 1
-            if log_mode == 2:
-                print(fighter_a.name, 'hits the', hit_location_name_b, 'of', fighter_b.name)
-                print(fighter_b.name, hit_location_name_b, 'has', fighter_b.currhits[hit_location_num_b], 'of', fighter_b.maxhits[hit_location_num_b],'hits remaining')
+            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,log_mode)
         elif fighter_a_hit_chance <= round_rand_hit < (fighter_a_hit_chance+chance_trade) :
             fighter_b.damage_creature(hit_location_num_b,fighter_a.damage)
             fighter_a.damage_creature(hit_location_num_a,fighter_b.damage)
             fighter_a_was_hit,fighter_b_was_hit = 1,1
-            if log_mode == 2:
-                print(fighter_a.name, 'hits the', hit_location_name_b, 'of', fighter_b.name)
-                print(fighter_b.name, hit_location_name_b, 'has', fighter_b.currhits[hit_location_num_b], 'of', fighter_b.maxhits[hit_location_num_b],'hits remaining')
-                print(fighter_b.name, 'hits the', hit_location_name_a, 'of', fighter_a.name)
-                print(fighter_a.name, hit_location_name_a, 'has', fighter_a.currhits[hit_location_num_a], 'of', fighter_a.maxhits[hit_location_num_a],'hits remaining')
+            log_hit(fighter_a,fighter_b,hit_location_num_b,hit_location_name_b,log_mode)
+            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,log_mode)
         elif (fighter_a_hit_chance+chance_trade) <= round_rand_hit <= 1 :
             fighter_a.damage_creature(hit_location_num_a,fighter_b.damage)
             fighter_a_was_hit = 1
-            if log_mode == 2:
-                print(fighter_b.name, 'hits the', hit_location_name_a, 'of', fighter_a.name)
-                print(fighter_a.name, hit_location_name_a, 'has', fighter_a.currhits[hit_location_num_a], 'of', fighter_a.maxhits[hit_location_num_a],'hits remaining')
+            log_hit(fighter_b,fighter_a,hit_location_num_a,hit_location_name_a,log_mode)
         else :
             print('Error: Unspecified combat round outcome')
             exit()
