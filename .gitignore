@@ -1,3 +1,7 @@
 /__pycache__
 /LARPCombatSIM.spec
+/charactercreator.spec
 /build
+/archive
+/.vscode
+/build.bat
