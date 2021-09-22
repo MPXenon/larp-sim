@@ -20,26 +20,30 @@ def use_ability(source,target,ability,log_mode):
             target.apply_status(ability.associated_status,ability.associated_status_duration)
             if log_mode == 2:
                 print(source.name,'used',ability.name,'on',target.name)
-                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),'remaining')
+                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
         elif 'self' in ability.target:
             source.apply_status(ability.associated_status,ability.associated_status_duration)
             if log_mode == 2:
                 print(source.name,'used',ability.name,'on',source.name)
-                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),'remaining')
+                print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
     # If ability is direct damage and can target hostile then deal direct damage to the target
     if ability.type == 'abilitydamagedirect' and 'hostile' in ability.target:
         target.damage_creature_direct(ability.damage)
         if log_mode == 2:
             print(source.name,'used',ability.name,'on',target.name)
-            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),'remaining')
+            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
     # If ability is heal creature and can target self then heal source
     if ability.type == 'abilityhealcreature' and 'self' in ability.target:
         source.heal_creature(ability.healing)
         if log_mode == 2:
             print(source.name,'used',ability.name,'on',source.name)
-            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),'remaining')
-    # If ability is affect creature
-        #PLACEHOLDER
+            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
+    # If ability is affect creature - currently self only
+    if ability.type == 'abilityaffectcreature' and 'self' in ability.target:
+        source.change_attribute_creature(ability.attribute_target,ability.attribute_change_mode,ability.attribute_mod)
+        if log_mode == 2:
+            print(source.name,'used',ability.name,'on',source.name)
+            print(source.name,'has',getattr(source,source_resource_spend),'of',getattr(source,source_resource_max),ability.resource_activate,'remaining')
 
 def use_ability_fast(source,target,ability,log_mode):
     'Function for source creature to use selected ability in fight with target if it is a valid fast ability'
@@ -52,7 +56,7 @@ def use_ability_slow(source,target,ability,source_was_hit,log_mode):
     'Function for source creature to use selected ability in fight with target if it is a valid slow ability'
     if ability == None:
         return
-    elif (ability.speed == 'interruptible' and source_was_hit == 0) or ability.speed == 'uninterruptible':
+    elif (ability.speed == 'interruptible' and source_was_hit == 0) or (ability.speed == 'uninterruptible' and source.check_incapacitated() == 0):
         use_ability(source,target,ability,log_mode)
 
 def run_solo_encounter(fighter_a,fighter_b,log_mode):

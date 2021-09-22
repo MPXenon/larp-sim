@@ -1,8 +1,66 @@
-# Creature class module
-
 import random
-import status
+import jsonpickle
 
+# Setup a class for so everything to have a string representation
+class FileItem():
+    def __str__(self):
+        return jsonpickle.encode(self)
+
+# Setup a class for statuses
+class Status(FileItem):
+    'Class that defines statuses which affect combat'
+
+    def __init__(self,name,status_rating_multi=1,status_hit_multi=[1,1,1,1,1,1],status_damage_mod=0,status_damage_multi=1):
+        self.name,self.status_rating_multi,self.status_hit_multi = name,status_rating_multi,status_hit_multi
+        self.status_damage_mod,self.status_damage_multi = status_damage_mod,status_damage_multi
+
+# Setup a class for weapons
+class Weapon(FileItem):
+    'Class that defines weapons which affect combat'
+
+    def __init__(self,name,weapon_rating_multi,weapon_hit_multi):
+        self.name,self.weapon_rating_multi,self.weapon_hit_multi = name,weapon_rating_multi,weapon_hit_multi
+
+# Setup a class for special abilities
+class Ability(FileItem):
+    'Base Class that defines abilities which affect combat'
+    type = None
+    def __init__(self,name,target,speed,resource_activate,resource_cost):
+        self.name,self.target,self.speed,self.resource_activate,self.resource_cost = name,target,speed,resource_activate,resource_cost
+
+class AbilityGrantStatus(Ability):
+    'Class that defines abilities which apply a status effect'
+    type = 'abilitygrantstatus'
+    def __init__(self,name,target,speed,resource_activate,resource_cost,associated_status,associated_status_duration):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.associated_status,self.associated_status_duration = associated_status,associated_status_duration
+
+class AbilityDamageDirect(Ability):
+    'Class that defines abilities which damage directly damage a creature'
+    type = 'abilitydamagedirect'
+    # This is the TT equivalent of a "THREE" as opposed to a "TRIPLE"
+    # Note : Damage types not implemented
+    def __init__(self,name,target,speed,resource_activate,resource_cost,damage):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.damage = damage
+
+class AbilityHealCreature(Ability):
+    'Class that defines abilities which heal creatures'
+    type = 'abilityhealcreature'
+    # Note : This only supports immediate numerical healing abilities, it doesn't support "heal sufficient" or "lay on hands" miracles
+    def __init__(self,name,target,speed,resource_activate,resource_cost,healing):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.healing = healing
+
+class AbilityAffectCreature(Ability):
+    'Class that defines abilities which directly modify non-hit point creature attributes'
+    # Note : This functions in two "modes"; abilities which set the value, and abilities which modify the value
+    type = 'abilityaffectcreature'
+    def __init__(self,name,target,speed,resource_activate,resource_cost,attribute_target,attribute_mod,attribute_change_mode):
+        super().__init__(name,target,speed,resource_activate,resource_cost)
+        self.attribute_target,self.attribute_mod,self.attribute_change_mode = attribute_target,attribute_mod,attribute_change_mode
+
+# Setup Creature Classes
 # Initialise variables for hit locations
 hit_location_names = ['Head','Off Hand','Body','Favoured Hand','Off Leg','Favoured Leg']
 base_hit_location_weightings = [4,1,4,6,1,4]
@@ -11,12 +69,12 @@ base_hit_location_weightings = [4,1,4,6,1,4]
 heal_loc_priority = (0,2,3,5,4,1)
 
 # Initialise core statuses
-status_prone = status.Status('Prone', 0.75, [1.5,2,1,1,1,0.25])
-status_off_hand = status.Status('Using Off hand', 0.75, [1,1,1,1,1,1])
-status_disarmed = status.Status('Disarmed', 0, [1,1,1,1,1,1])
+status_prone = Status('Prone', 0.75, [1.5,2,1,1,1,0.25])
+status_off_hand = Status('Using Off hand', 0.75, [1,1,1,1,1,1])
+status_disarmed = Status('Disarmed', 0, [1,1,1,1,1,1])
 
 # Setup a class for creatures that can fight
-class Creature:
+class Creature(FileItem):
     'Class that defines all combat capable creatures'
 
     name_hit_list,base_chance_hit_list = [],[]
